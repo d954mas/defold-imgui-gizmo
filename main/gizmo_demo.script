@@ -138,7 +138,6 @@ function on_input(self, action_id, action)
         self.selected = nil
         if result then
             local hit_id = result.id
-            pprint(hit_id)
             for _, obj in pairs(self.objects) do
                 if hit_id == obj.instance_id.path then
                     self.selected = obj.name
@@ -241,8 +240,9 @@ function update(self, dt)
 
     if self.selected then
         local operation = self.gizmo_operation
-        if self.selected.name == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
+        if self.selected == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
             operation = imgui_gizmo.OPERATION_SCALEU
+            print("universal scale")
         end
 
         local obj = self.objects[self.selected]
