@@ -115,6 +115,11 @@ function init(self)
     self.draw_line_to = vmath.vector3()
     self.draw_line_color = vmath.vector4(1, 0, 0, 1)
 
+    self.grid = {
+        center_pos = vmath.vector3(0, 0, 0),
+        size = 10,
+    }
+
     for _, obj in pairs(self.objects) do
         recreate_object(obj)
     end
@@ -155,8 +160,23 @@ function update(self, dt)
     imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
     imgui_gizmo.set_drawlist_background()
 
-    local grid_size = 10
-    local identity = vmath.matrix4()
+    imgui.set_next_window_pos(12, 210)
+    imgui.set_next_window_size(300, 130)
+    local grid_window_visible = imgui.begin_window("Grid", false)
+    if grid_window_visible then
+        local changed, cx, cy, cz = imgui.input_float3("Center Pos", self.grid.center_pos.x, self.grid.center_pos.y, self.grid.center_pos.z)
+        if changed then
+            self.grid.center_pos = vmath.vector3(cx, cy, cz)
+        end
+        local size_changed, grid_size = imgui.input_int("Grid Size", self.grid.size)
+        if size_changed then
+            self.grid.size = math.max(1, grid_size)
+        end
+    end
+    imgui.end_window()
+
+    local grid_size = self.grid.size
+    local identity = make_trs(self.grid.center_pos, vmath.vector3(1, 1, 1))
     imgui_gizmo.set_grid_colors(0x80808099, 0x80808099, 0xFF000066)
     imgui_gizmo.draw_grid(self.view, self.projection, identity, grid_size)
 
@@ -164,16 +184,16 @@ function update(self, dt)
     local right = vmath.vector3(0, 1, 0)
     local up = vmath.vector3(1, 0, 0)
     local forward = vmath.vector3(0, 0, 1)
-    local vertical = make_basis_matrix(right, up, forward, vmath.vector3(0, 0, 0))
+    local vertical = make_basis_matrix(right, up, forward, self.grid.center_pos)
     imgui_gizmo.set_grid_colors(0x3F7FBF99, 0x3F7FBF99, 0xFF000066)
     imgui_gizmo.draw_grid(self.view, self.projection, vertical, grid_size)
 
-    -- Vertical grid: local Y (grid normal) points to world X, plane is YZ.
+    -- Vertical grid: local Y (grid normal) points to world Z, plane is XY.
     local right = vmath.vector3(0, 1, 0)
     local up = vmath.vector3(0, 0, 1)
     local forward = vmath.vector3(1, 0, 0)
-    local vertical = make_basis_matrix(right, up, forward, vmath.vector3(0, 0, 0))
-    
+    local vertical = make_basis_matrix(right, up, forward, self.grid.center_pos)
+
     imgui_gizmo.set_grid_colors(0x72A64099, 0x72A64099, 0xFF000066)
     imgui_gizmo.draw_grid(self.view, self.projection, vertical, grid_size)
 
