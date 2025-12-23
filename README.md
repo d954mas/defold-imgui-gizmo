@@ -7,6 +7,9 @@ Small demo project for testing ImGui Gizmo in Defold: object picking, transforms
 - Object gizmo (translate/rotate/scale).
 - Grid rendering.
 
+## Screenshot
+![screen1](docs/screen1.png)
+
 ## Controls
 - Click an object to select it.
 - The left panel lets you change gizmo mode and edit TRS values manually.
@@ -285,7 +288,7 @@ Open your `game.project` file and in the dependencies field under project add:
 
 ```
 https://github.com/britzl/extension-imgui/archive/master.zip
-https://github.com/d954mas/imgui_gizmo/archive/main.zip
+https://github.com/d954mas/defold-imgui-gizmo/archive/master.zip
 ```
 
 Or point to ZIP files of specific releases.
