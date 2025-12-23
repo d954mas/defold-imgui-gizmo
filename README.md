@@ -54,6 +54,24 @@ end
 - `main/gizmo_demo.script` — demo logic and ImGui Gizmo usage.
 - `imgui_gizmo/imgui_gizmo_header.lua` — ImGui Gizmo API (constants + bindings).
 
+## Setup
+You can use ImGui Gizmo in your own project by adding ImGui and this project as Defold library dependencies.
+Open your `game.project` file and in the dependencies field under project add:
+
+```
+https://github.com/britzl/extension-imgui/archive/master.zip
+https://github.com/d954mas/defold-imgui-gizmo/archive/master.zip
+```
+
+Or point to ZIP files of specific releases.
+
+Call `imgui_gizmo.set_context()` once during initialization before any gizmo use.
+
+You need least one ImGui call is required each frame to trigger NewFrame() in ImGui extension.
+```lua
+imgui.get_frame_height()
+```
+
 
 ## API
 ```lua
@@ -282,15 +300,3 @@ imgui_gizmo.COLOR_COUNT = 15
 ## Background
 Based on the Defold "basic 3D" template and uses 3D physics.
 
-## Setup
-You can use ImGui Gizmo in your own project by adding ImGui and this project as Defold library dependencies.
-Open your `game.project` file and in the dependencies field under project add:
-
-```
-https://github.com/britzl/extension-imgui/archive/master.zip
-https://github.com/d954mas/defold-imgui-gizmo/archive/master.zip
-```
-
-Or point to ZIP files of specific releases.
-
-Call `imgui_gizmo.set_context()` once during initialization before any gizmo use.
