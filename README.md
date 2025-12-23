@@ -19,9 +19,6 @@ Small demo project for testing ImGui Gizmo in Defold: object picking, transforms
 Lua header usage (API + constants) and a minimal per-frame call:
 
 ```lua
-local imgui = require "imgui"
-local imgui_gizmo = require "imgui_gizmo.imgui_gizmo_header"
-
 function init(self)
     imgui_gizmo.set_context()
     ...
