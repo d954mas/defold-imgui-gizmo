@@ -87,7 +87,7 @@ function on_input(self, action_id, action)
     if action_id == ACTION_TOUCH and action.pressed then
         local origin, dir = screen_to_world_ray(action.x, action.y, self.display_width, self.display_height, self.view,
             self.projection)
-         dir = vmath.vector3(0,0,-1)
+        dir = vmath.vector3(0, 0, -1)
         local to = origin + dir * 1000
         local result = physics.raycast(origin, to, { hash("obstacle") })
         print(to)
@@ -113,19 +113,6 @@ function update(self, dt)
     IMGUI.on_resize(self.display_width, self.display_height)
     imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
     imgui_gizmo.set_drawlist_foreground()
-
-    local view_matrix = self.view
-    local gizmo_size = 120
-    local padding = 12
-    local pos = vmath.vector3(self.display_width - gizmo_size - padding, padding, 0)
-    local size = vmath.vector3(gizmo_size, gizmo_size, 0)
-    imgui_gizmo.view_manipulate(view_matrix, 100, pos, size, 0x101010FF)
-    self.view = view_matrix
-   -- local cam_matrix = vmath.inv(view_matrix)
- --   local cam_pos, cam_rot = imgui_gizmo.decompose_matrix(cam_matrix)
-   -- go.set_position(cam_pos, self.camera_go)
-  --  go.set_rotation(imgui_gizmo.quat_from_euler(cam_rot), self.camera_go)
-
 
     if self.selected then
         imgui.set_next_window_pos(12, 12)
@@ -197,40 +184,63 @@ function update(self, dt)
         self.last_selected = self.selected
     end
 
-    if not self.selected then
-        return
-    end
-
-    local operation = self.gizmo_operation
-    if self.selected == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
-        operation = imgui_gizmo.OPERATION_SCALEU
-    end
-
-    if self.selected == "sphere" then
-        local obj = self.objects.sphere
-        local manipulated, delta = imgui_gizmo.manipulate(
-            self.view,
-            self.projection,
-            operation,
-            self.gizmo_mode,
-            obj.matrix,
-            self.use_snap and self.snap or nil
-        )
-        if manipulated then
-            apply_matrix_to_go(obj.id, obj.matrix)
+    if self.selected then
+        local operation = self.gizmo_operation
+        if self.selected == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
+            operation = imgui_gizmo.OPERATION_SCALEU
         end
-    elseif self.selected == "cube" then
-        local obj = self.objects.cube
-        local manipulated, delta = imgui_gizmo.manipulate(
-            self.view,
-            self.projection,
-            operation,
-            self.gizmo_mode,
-            obj.matrix,
-            self.use_snap and self.snap or nil
-        )
-        if manipulated then
-            apply_matrix_to_go(obj.id, obj.matrix)
+
+        if self.selected == "sphere" then
+            local obj = self.objects.sphere
+            local manipulated, delta = imgui_gizmo.manipulate(
+                self.view,
+                self.projection,
+                operation,
+                self.gizmo_mode,
+                obj.matrix,
+                self.use_snap and self.snap or nil
+            )
+            if manipulated then
+                apply_matrix_to_go(obj.id, obj.matrix)
+            end
+        elseif self.selected == "cube" then
+            local obj = self.objects.cube
+            local manipulated, delta = imgui_gizmo.manipulate(
+                self.view,
+                self.projection,
+                operation,
+                self.gizmo_mode,
+                obj.matrix,
+                self.use_snap and self.snap or nil
+            )
+            if manipulated then
+                apply_matrix_to_go(obj.id, obj.matrix)
+            end
         end
     end
+
+
+    local gizmo_size = 140
+    imgui.set_next_window_pos(self.display_width - gizmo_size - 12, 12)
+    imgui.set_next_window_size(gizmo_size, gizmo_size)
+    local visible = imgui.begin_window(
+        "View Gizmo",
+        false,
+        imgui.WINDOWFLAGS_NORESIZE + imgui.WINDOWFLAGS_NOMOVE
+    )
+    if visible then
+        local wx, wy = imgui.get_window_pos()
+        local ww, wh = imgui.get_window_size()
+        local view_matrix = self.view
+        local pos = vmath.vector3(wx, wy, 0)
+        local size = vmath.vector3(ww, wh, 0)
+        imgui_gizmo.set_drawlist_foreground()
+        imgui_gizmo.view_manipulate(view_matrix, 100, pos, size, 0x101010FF)
+        self.view = view_matrix
+        local cam_matrix = vmath.inv(view_matrix)
+        local cam_pos, cam_rot = imgui_gizmo.decompose_matrix(cam_matrix)
+        go.set_position(cam_pos, self.camera_go)
+        go.set_rotation(imgui_gizmo.quat_from_euler(cam_rot), self.camera_go)
+    end
+    imgui.end_window()
 end

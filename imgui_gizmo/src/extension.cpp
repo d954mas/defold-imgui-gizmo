@@ -273,7 +273,7 @@ static int gizmo_Manipulate(lua_State* L)
     if (top < 5) {
         return luaL_error(L, "manipulate(view, projection, operation, mode, matrix, [snap], [local_bounds], [bounds_snap])");
     }
-
+    ImGuizmo::BeginFrame();
     dmVMath::Matrix4 view = *dmScript::CheckMatrix4(L, 1);
     dmVMath::Matrix4 projection = *dmScript::CheckMatrix4(L, 2);
     ImGuizmo::OPERATION operation = (ImGuizmo::OPERATION)luaL_checkinteger(L, 3);
@@ -444,6 +444,7 @@ static int gizmo_ViewManipulate(lua_State* L)
     if (top < 5) {
         return DM_LUA_ERROR("view_manipulate(view, length, position, size, background_color) or view_manipulate(view, projection, operation, mode, matrix, length, position, size, background_color)");
     }
+    ImGuizmo::BeginFrame();
 
     dmVMath::Matrix4* view = dmScript::CheckMatrix4(L, 1);
     float view_matrix[16];
