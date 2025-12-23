@@ -30,17 +30,24 @@ local function screen_to_world_ray(x, y, width, height, view, projection)
     return near, dir
 end
 
-local function apply_matrix_to_go(id, matrix)
-    local translation, rotation, scale = imgui_gizmo.decompose_matrix(matrix)
-    go.set_position(translation, id)
-    go.set_scale(scale, id)
-    local q = imgui_gizmo.quat_from_euler(rotation)
-    go.set_rotation(q, id)
+local function set_tint(id, color)
+    go.set(id, "tint", color)
 end
 
-local function set_tint(id, color)
-    pcall(go.set, id, "tint", color)
+local function recreate_object(obj, tint)
+    if obj.instance_id then
+        go.delete(obj.instance_id, true)
+    end
+    local translation, rotation, scale = imgui_gizmo.decompose_matrix(obj.matrix)
+    local q = imgui_gizmo.quat_from_euler(rotation)
+    obj.instance_id = msg.url(collectionfactory.create(obj.factory, translation, q, nil, scale)[hash("/root")])
+    obj.model_comp_url = msg.url(  obj.instance_id.socket,obj.instance_id.path, "model")
+    if tint then
+        set_tint(obj.model_comp_url, tint)
+    end
 end
+
+
 
 local function draw_line(from, to, color)
     msg.post("@render:", HASH_DRAW_LINE, {
@@ -72,19 +79,21 @@ function init(self)
     self.camera = msg.url("/camera#camera")
     self.camera_go = msg.url("/camera")
 
-    self.sphere_id = go.get_id("sphere")
-    self.cube_id = go.get_id("cube")
 
     self.objects = {
         sphere = {
-            id = self.sphere_id,
+            name = "sphere",
+            factory =  msg.url("/main#factory_sphere"),
+            instance_id = nil,
             radius = 0.5,
-            matrix = make_trs(go.get_position(self.sphere_id), vmath.vector3(1, 1, 1)),
+            matrix = make_trs(vmath.vector3(-1, 0, 0), vmath.vector3(1, 1, 1)),
         },
         cube = {
-            id = self.cube_id,
+            name = "cube",
+            factory = msg.url("/main#factory_cube"),
+            instance_id = nil,
             half_extents = vmath.vector3(0.5, 0.5, 0.5),
-            matrix = make_trs(go.get_position(self.cube_id), vmath.vector3(1, 1, 1)),
+            matrix = make_trs(vmath.vector3(1, 0, 0), vmath.vector3(1, 1, 1)),
         }
     }
 
@@ -100,6 +109,10 @@ function init(self)
     self.draw_line_from = vmath.vector3()
     self.draw_line_to = vmath.vector3()
     self.draw_line_color = vmath.vector4(1, 0, 0, 1)
+
+    for _, obj in pairs(self.objects) do
+        recreate_object(obj)
+    end
 end
 
 function on_input(self, action_id, action)
@@ -113,15 +126,17 @@ function on_input(self, action_id, action)
         local result = physics.raycast(origin, to, { hash("obstacle") })
         self.draw_line_from = origin
         self.draw_line_to = to
-        self.draw_line_time = 0
+        self.draw_line_time = 3
         self.selected = nil
         if result then
             local hit_id = result.id
-            if hit_id == self.objects.sphere.id then
-                self.selected = "sphere"
-            elseif hit_id == self.objects.cube.id then
-                self.selected = "cube"
+            pprint(hit_id)
+            for _, obj in pairs(self.objects) do
+                if hit_id == obj.instance_id.path then
+                    self.selected = obj.name
+                end
             end
+
         end
     end
 end
@@ -186,7 +201,8 @@ function update(self, dt)
             end
             if tr_changed or rt_changed or sc_changed then
                 obj.matrix = imgui_gizmo.recompose_matrix(tr, rt, sc)
-                apply_matrix_to_go(obj.id, obj.matrix)
+                local selected_obj = self.objects[self.selected]
+                recreate_object(selected_obj, vmath.vector4(1, 0.6, 0.2, 1))
             end
 
             changed = imgui.radio_button("Local", self.gizmo_mode == imgui_gizmo.MODE_LOCAL)
@@ -209,15 +225,8 @@ function update(self, dt)
     end
 
     if self.selected ~= self.last_selected then
-        if self.last_selected == "sphere" then
-            set_tint(self.objects.sphere.id, vmath.vector4(1, 1, 1, 1))
-        elseif self.last_selected == "cube" then
-            set_tint(self.objects.cube.id, vmath.vector4(1, 1, 1, 1))
-        end
-        if self.selected == "sphere" then
-            set_tint(self.objects.sphere.id, vmath.vector4(1, 0.6, 0.2, 1))
-        elseif self.selected == "cube" then
-            set_tint(self.objects.cube.id, vmath.vector4(0.2, 0.8, 1, 1))
+        if self.last_selected then
+            set_tint(self.objects[self.last_selected].model_comp_url, vmath.vector4(1, 1, 1, 1))
         end
         self.last_selected = self.selected
     end
@@ -228,31 +237,22 @@ function update(self, dt)
             operation = imgui_gizmo.OPERATION_SCALEU
         end
 
-        if self.selected == "sphere" then
-            local obj = self.objects.sphere
-            local manipulated, delta = imgui_gizmo.manipulate(
-                self.view,
-                self.projection,
-                operation,
-                self.gizmo_mode,
-                obj.matrix,
-                self.use_snap and self.snap or nil
-            )
-            if manipulated then
-                apply_matrix_to_go(obj.id, obj.matrix)
-            end
-        elseif self.selected == "cube" then
-            local obj = self.objects.cube
-            local manipulated, delta = imgui_gizmo.manipulate(
-                self.view,
-                self.projection,
-                operation,
-                self.gizmo_mode,
-                obj.matrix,
-                self.use_snap and self.snap or nil
-            )
-            if manipulated then
-                apply_matrix_to_go(obj.id, obj.matrix)
+        local obj = self.objects[self.selected]
+        local manipulated, delta = imgui_gizmo.manipulate(
+            self.view,
+            self.projection,
+            operation,
+            self.gizmo_mode,
+            obj.matrix,
+            self.use_snap and self.snap or nil
+        )
+        if manipulated then
+            if self.selected == "sphere" then
+                recreate_object(obj, vmath.vector4(1, 0.6, 0.2, 1))
+            elseif self.selected == "cube" then
+                recreate_object(obj, vmath.vector4(0.2, 0.8, 1, 1))
+            else
+                recreate_object(obj)
             end
         end
     end
