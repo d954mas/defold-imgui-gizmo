@@ -68,9 +68,7 @@ Or point to ZIP files of specific releases.
 Call `imgui_gizmo.set_context()` once during initialization before any gizmo use.
 
 You need least one ImGui call is required each frame to trigger NewFrame() in ImGui extension.
-```lua
-imgui.get_frame_height()
-```
+`imgui.get_frame_height()`
 
 
 ## API
