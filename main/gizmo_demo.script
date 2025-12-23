@@ -2,6 +2,7 @@ local IMGUI = require "main.imgui"
 
 local ACTION_TOUCH = hash("touch")
 local DEG2RAD = math.pi / 180
+local HASH_DRAW_LINE = hash("draw_line")
 
 local function make_trs(position, scale)
     local m = vmath.matrix4()
@@ -14,7 +15,7 @@ end
 
 local function screen_to_world_ray(x, y, width, height, view, projection)
     local ndc_x = (2 * x / width) - 1
-    local ndc_y = 1 - (2 * y / height)
+    local ndc_y = (2 * y / height) - 1
     local inv_vp = vmath.inv(projection * view)
 
     local near4 = inv_vp * vmath.vector4(ndc_x, ndc_y, -1, 1)
@@ -39,6 +40,14 @@ end
 
 local function set_tint(id, color)
     pcall(go.set, id, "tint", color)
+end
+
+local function draw_line(from, to, color)
+    msg.post("@render:", HASH_DRAW_LINE, {
+        start_point = from,
+        end_point = to,
+        color = color
+    })
 end
 
 local function make_basis_matrix(right, up, forward, position)
@@ -86,6 +95,11 @@ function init(self)
     self.gizmo_mode = imgui_gizmo.MODE_LOCAL
     self.use_snap = false
     self.snap = vmath.vector3(1, 1, 1)
+
+    self.draw_line_time = 0
+    self.draw_line_from = vmath.vector3()
+    self.draw_line_to = vmath.vector3()
+    self.draw_line_color = vmath.vector4(1, 0, 0, 1)
 end
 
 function on_input(self, action_id, action)
@@ -94,11 +108,12 @@ function on_input(self, action_id, action)
         return
     end
     if action_id == ACTION_TOUCH and action.pressed then
-        local origin, dir = screen_to_world_ray(action.x, action.y, self.display_width, self.display_height, self.view,
-            self.projection)
-        dir = vmath.vector3(0, 0, -1)
+        local origin, dir = screen_to_world_ray(action.screen_x, action.screen_y, self.display_width, self.display_height, self.view, self.projection)
         local to = origin + dir * 1000
         local result = physics.raycast(origin, to, { hash("obstacle") })
+        self.draw_line_from = origin
+        self.draw_line_to = to
+        self.draw_line_time = 0
         self.selected = nil
         if result then
             local hit_id = result.id
@@ -132,6 +147,10 @@ function update(self, dt)
         imgui_gizmo.draw_grid(self.view, self.projection, vertical, grid_size)
     end
     imgui_gizmo.set_drawlist_foreground()
+    if self.draw_line_time > 0 then
+        self.draw_line_time = self.draw_line_time - dt
+        draw_line(self.draw_line_from, self.draw_line_to, self.draw_line_color)
+    end
 
     if self.selected then
         imgui.set_next_window_pos(12, 12)
