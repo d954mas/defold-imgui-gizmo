@@ -19,6 +19,8 @@ dependencies#0 = https://github.com/d954mas/extension-imgui/archive/refs/heads/m
 
 [physics]
 type = 3D
+use_fixed_timestep = 1
+max_fixed_timesteps = 1
 
 [osx]
 bundle_identifier = com.defold.example.basic3d

@@ -124,6 +124,8 @@ function M.init()
 
 	--imgui.scale_all_sizes(1.5)
 	--imgui.set_global_font_scale(1.5)
+
+    imgui_gizmo.set_context()
 end
 
 function M.is_imgui_handled_input()

@@ -42,6 +42,7 @@ local function set_tint(id, color)
 end
 
 function init(self)
+    IMGUI.init()
     msg.post(".", "acquire_input_focus")
     msg.post("@render:", "use_camera_projection")
     msg.post("/camera#camera", "acquire_camera_focus")
@@ -84,17 +85,20 @@ function on_input(self, action_id, action)
     if action_id == ACTION_TOUCH and action.pressed then
         local origin, dir = screen_to_world_ray(action.x, action.y, self.display_width, self.display_height, self.view,
             self.projection)
+         dir = vmath.vector3(0,0,-1)
         local to = origin + dir * 1000
         local result = physics.raycast(origin, to, { hash("obstacle") })
-
+        print(to)
+        pprint(result)
         self.selected = nil
-        if result and #result > 0 then
-            local hit_id = result[1].id
+        if result then
+            local hit_id = result.id
             if hit_id == self.objects.sphere.id then
                 self.selected = "sphere"
             elseif hit_id == self.objects.cube.id then
                 self.selected = "cube"
             end
+            print(self.selected)
         end
     end
 end
