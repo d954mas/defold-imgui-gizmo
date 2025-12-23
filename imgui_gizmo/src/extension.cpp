@@ -3,6 +3,7 @@
 #define MODULE_NAME "imgui_gizmo"
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 #include <vector>
 
 #include <dmsdk/sdk.h>
@@ -37,6 +38,46 @@ static void Matrix4ToFloatArray(const dmVMath::Matrix4& matrix, float* out_array
     out_array[13] = col3.getY();
     out_array[14] = col3.getZ();
     out_array[15] = col3.getW();
+}
+
+static dmVMath::Quat EulerToQuat(dmVMath::Vector3 xyz)
+{
+    const float half_rad_factor = 0.5f * 3.14159265358979323846f / 180.0f;
+    uint8_t mask = (xyz.getZ() != 0.0f) << 2 | (xyz.getY() != 0.0f) << 1 | (xyz.getX() != 0.0f);
+    switch (mask) {
+    case 0:
+        return dmVMath::Quat(0.0f, 0.0f, 0.0f, 1.0f);
+    case 1:
+    case 2:
+    case 4: {
+        float ha = (xyz.getX() + xyz.getY() + xyz.getZ()) * half_rad_factor;
+        dmVMath::Quat q(0.0f, 0.0f, 0.0f, cosf(ha));
+        q.setElem(mask >> 1, sinf(ha));
+        return q;
+    }
+    default:
+        break;
+    }
+
+    float t1 = xyz.getY() * half_rad_factor;
+    float t2 = xyz.getZ() * half_rad_factor;
+    float t3 = xyz.getX() * half_rad_factor;
+
+    float c1 = cosf(t1);
+    float s1 = sinf(t1);
+    float c2 = cosf(t2);
+    float s2 = sinf(t2);
+    float c3 = cosf(t3);
+    float s3 = sinf(t3);
+    float c1_c2 = c1 * c2;
+    float s2_s3 = s2 * s3;
+
+    dmVMath::Quat quat;
+    quat.setW(-s1 * s2_s3 + c1_c2 * c3);
+    quat.setX(s1 * s2 * c3 + s3 * c1_c2);
+    quat.setY(s1 * c2 * c3 + s2_s3 * c1);
+    quat.setZ(-s1 * s3 * c2 + s2 * c1 * c3);
+    return quat;
 }
 
 static void FloatArrayToMatrix4(const float* array, dmVMath::Matrix4* out_matrix)
@@ -228,9 +269,10 @@ static int gizmo_SetPlaneLimit(lua_State* L)
 
 static int gizmo_Manipulate(lua_State* L)
 {
+    DM_LUA_STACK_CHECK(L, -1);
     int top = lua_gettop(L);
     if (top < 5) {
-        return DM_LUA_ERROR("manipulate(view, projection, operation, mode, matrix, [snap], [local_bounds], [bounds_snap])");
+        return luaL_error(L, "manipulate(view, projection, operation, mode, matrix, [snap], [local_bounds], [bounds_snap])");
     }
 
     dmVMath::Matrix4 view = *dmScript::CheckMatrix4(L, 1);
@@ -251,7 +293,7 @@ static int gizmo_Manipulate(lua_State* L)
     float snap_values[3];
     if (top >= 6 && !lua_isnil(L, 6)) {
         if (!ReadVector3OrNumber(L, 6, snap_values)) {
-            return DM_LUA_ERROR("snap must be number or vmath.vector3");
+            return luaL_error(L, "snap must be number or vmath.vector3");
         }
         snap = snap_values;
     }
@@ -260,7 +302,7 @@ static int gizmo_Manipulate(lua_State* L)
     float local_bounds_values[6];
     if (top >= 7 && !lua_isnil(L, 7)) {
         if (!ReadBounds(L, 7, local_bounds_values)) {
-            return DM_LUA_ERROR("local_bounds must be table with 6 numbers");
+            return luaL_error(L, "local_bounds must be table with 6 numbers");
         }
         local_bounds = local_bounds_values;
     }
@@ -269,7 +311,7 @@ static int gizmo_Manipulate(lua_State* L)
     float bounds_snap_values[3];
     if (top >= 8 && !lua_isnil(L, 8)) {
         if (!ReadVector3OrNumber(L, 8, bounds_snap_values)) {
-            return DM_LUA_ERROR("bounds_snap must be number or vmath.vector3");
+            return luaL_error(L, "bounds_snap must be number or vmath.vector3");
         }
         bounds_snap = bounds_snap_values;
     }
@@ -398,6 +440,7 @@ static int gizmo_DrawCubes(lua_State* L)
 
 static int gizmo_ViewManipulate(lua_State* L)
 {
+    DM_LUA_STACK_CHECK(L, 0);
     int top = lua_gettop(L);
     if (top < 5) {
         return DM_LUA_ERROR("view_manipulate(view, length, position, size, background_color) or view_manipulate(view, projection, operation, mode, matrix, length, position, size, background_color)");
@@ -609,6 +652,26 @@ static int gizmo_SetStyleColor(lua_State* L)
     return 0;
 }
 
+static int gizmo_QuatFromEuler(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 1);
+    dmVMath::Vector3* v3 = dmScript::CheckVector3(L, 1);
+    dmVMath::Quat q = EulerToQuat(*v3);
+    dmScript::PushQuat(L, q);
+    return 1;
+}
+
+static int gizmo_SetContext(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 0);
+    ImGuiContext* ctx = ImGui::GetCurrentContext();
+    if (ctx == NULL) {
+        return luaL_error(L, "ImGui context is not initialized");
+    }
+    ImGuizmo::SetImGuiContext(ctx);
+    return 0;
+}
+
 static const luaL_Reg Module_methods[] = {
     {"set_rect", gizmo_SetRect},
     {"set_orthographic", gizmo_SetOrthographic},
@@ -634,6 +697,8 @@ static const luaL_Reg Module_methods[] = {
     {"set_style", gizmo_SetStyle},
     {"get_style_color", gizmo_GetStyleColor},
     {"set_style_color", gizmo_SetStyleColor},
+    {"quat_from_euler", gizmo_QuatFromEuler},
+    {"set_context", gizmo_SetContext},
     {0, 0}
 };
 
@@ -695,11 +760,6 @@ static void LuaInit(lua_State* L)
 
 static dmExtension::Result InitializeMyExtension(dmExtension::Params* params)
 {
-    ImGuiContext* ctx = ImGui::GetCurrentContext();
-    if (ctx == NULL) {
-        lual_error(params->m_L, "ImGui context is not initialized");
-    }
-    ImGuizmo::SetImGuiContext(ctx);
     LuaInit(params->m_L);
     printf("Registered %s Extension\n", MODULE_NAME);
     return dmExtension::RESULT_OK;
