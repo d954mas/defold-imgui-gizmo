@@ -41,14 +41,14 @@ local function recreate_object(obj)
     local translation, rotation, scale = imgui_gizmo.decompose_matrix(obj.matrix)
     local q = imgui_gizmo.quat_from_euler(rotation)
     obj.instance_id = msg.url(collectionfactory.create(obj.factory, translation, q, nil, scale)[hash("/root")])
-    obj.model_comp_url = msg.url(  obj.instance_id.socket,obj.instance_id.path, "model")
-    obj.collision_comp_url = msg.url(  obj.instance_id.socket,obj.instance_id.path, "collisionobject")
+    obj.model_comp_url = msg.url(obj.instance_id.socket, obj.instance_id.path, "model")
+    obj.collision_comp_url = msg.url(obj.instance_id.socket, obj.instance_id.path, "collisionobject")
     if obj.name == "cube" then
-        local scale_u = 1--math.min(scale.x, scale.y, scale.z)
+        local scale_u = 1 --math.min(scale.x, scale.y, scale.z)
         local data = {}
         data.type = physics.SHAPE_TYPE_BOX
-        data.dimensions = vmath.vector3(1*scale.x / scale_u, 1*scale.y / scale_u, 1*scale.z / scale_u)
-        physics.set_shape( obj.collision_comp_url, "shape1", data)
+        data.dimensions = vmath.vector3(1 * scale.x / scale_u, 1 * scale.y / scale_u, 1 * scale.z / scale_u)
+        physics.set_shape(obj.collision_comp_url, "shape1", data)
     end
 end
 
@@ -88,7 +88,7 @@ function init(self)
     self.objects = {
         sphere = {
             name = "sphere",
-            factory =  msg.url("/main#factory_sphere"),
+            factory = msg.url("/main#factory_sphere"),
             instance_id = nil,
             radius = 0.5,
             matrix = make_trs(vmath.vector3(-1, 0, 0), vmath.vector3(1, 1, 1)),
@@ -126,7 +126,8 @@ function on_input(self, action_id, action)
         return
     end
     if action_id == ACTION_TOUCH and action.pressed then
-        local origin, dir = screen_to_world_ray(action.screen_x, action.screen_y, self.display_width, self.display_height, self.view, self.projection)
+        local origin, dir = screen_to_world_ray(action.screen_x, action.screen_y, self.display_width, self
+            .display_height, self.view, self.projection)
         local to = origin + dir * 1000
         local result = physics.raycast(origin, to, { hash("obstacle") })
         self.draw_line_from = origin
@@ -140,7 +141,6 @@ function on_input(self, action_id, action)
                     self.selected = obj.name
                 end
             end
-
         end
     end
 end
@@ -154,17 +154,29 @@ function update(self, dt)
     imgui.get_frame_height() -- NEED ANY IMGUI CALL SO DEFOLD IMGUI EXTENSION CREATE A FRAME
     imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
     imgui_gizmo.set_drawlist_background()
-    do
-        local grid_size = 10
-        local identity = vmath.matrix4()
-        imgui_gizmo.draw_grid(self.view, self.projection, identity, grid_size)
 
-        local right = vmath.vector3(0, 1, 0)
-        local up = vmath.vector3(0, 0, 1)
-        local forward = vmath.vector3(1, 0, 0)
-        local vertical = make_basis_matrix(right, up, forward, vmath.vector3(0, 0, 0))
-        imgui_gizmo.draw_grid(self.view, self.projection, vertical, grid_size)
-    end
+    local grid_size = 10
+    local identity = vmath.matrix4()
+    imgui_gizmo.set_grid_colors(0x80808099, 0x80808099, 0xFF000066)
+    imgui_gizmo.draw_grid(self.view, self.projection, identity, grid_size)
+
+    -- Vertical grid: local Y (grid normal) points to world X, plane is YZ.
+    local right = vmath.vector3(0, 1, 0)
+    local up = vmath.vector3(1, 0, 0)
+    local forward = vmath.vector3(0, 0, 1)
+    local vertical = make_basis_matrix(right, up, forward, vmath.vector3(0, 0, 0))
+    imgui_gizmo.set_grid_colors(0x3F7FBF99, 0x3F7FBF99, 0xFF000066)
+    imgui_gizmo.draw_grid(self.view, self.projection, vertical, grid_size)
+
+    -- Vertical grid: local Y (grid normal) points to world X, plane is YZ.
+    local right = vmath.vector3(0, 1, 0)
+    local up = vmath.vector3(0, 0, 1)
+    local forward = vmath.vector3(1, 0, 0)
+    local vertical = make_basis_matrix(right, up, forward, vmath.vector3(0, 0, 0))
+    
+    imgui_gizmo.set_grid_colors(0x72A64099, 0x72A64099, 0xFF000066)
+    imgui_gizmo.draw_grid(self.view, self.projection, vertical, grid_size)
+
     imgui_gizmo.set_drawlist_foreground()
     if self.draw_line_time > 0 then
         self.draw_line_time = self.draw_line_time - dt
@@ -246,9 +258,8 @@ function update(self, dt)
         self.last_selected = self.selected
         if self.selected then
             set_tint(self.objects[self.selected].model_comp_url, vmath.vector4(1, 0.6, 0.2, 1))
-
         end
-    end 
+    end
 
     if self.selected then
         local operation = self.gizmo_operation

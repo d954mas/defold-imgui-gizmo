@@ -499,6 +499,48 @@ static int gizmo_DrawGrid(lua_State* L)
     return 0;
 }
 
+static int gizmo_SetGridColors(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 0);
+    if (lua_isnumber(L, 1) && lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
+        uint32_t minor_rgba = (uint32_t)lua_tointeger(L, 1);
+        uint32_t major_rgba = (uint32_t)lua_tointeger(L, 2);
+        uint32_t axis_rgba = (uint32_t)lua_tointeger(L, 3);
+        ImU32 minor_u32 = IM_COL32(
+            (minor_rgba >> 24) & 0xFF,
+            (minor_rgba >> 16) & 0xFF,
+            (minor_rgba >> 8) & 0xFF,
+            minor_rgba & 0xFF
+        );
+        ImU32 major_u32 = IM_COL32(
+            (major_rgba >> 24) & 0xFF,
+            (major_rgba >> 16) & 0xFF,
+            (major_rgba >> 8) & 0xFF,
+            major_rgba & 0xFF
+        );
+        ImU32 axis_u32 = IM_COL32(
+            (axis_rgba >> 24) & 0xFF,
+            (axis_rgba >> 16) & 0xFF,
+            (axis_rgba >> 8) & 0xFF,
+            axis_rgba & 0xFF
+        );
+        ImGuizmo::SetGridColors(minor_u32, major_u32, axis_u32);
+        return 0;
+    }
+
+    ImVec4 minor;
+    ImVec4 major;
+    ImVec4 axis;
+    if (!ReadColor(L, 1, &minor) || !ReadColor(L, 2, &major) || !ReadColor(L, 3, &axis)) {
+        return DM_LUA_ERROR("colors must be RGBA numbers, vmath.vector4, or table");
+    }
+    ImU32 minor_u32 = ImGui::ColorConvertFloat4ToU32(minor);
+    ImU32 major_u32 = ImGui::ColorConvertFloat4ToU32(major);
+    ImU32 axis_u32 = ImGui::ColorConvertFloat4ToU32(axis);
+    ImGuizmo::SetGridColors(minor_u32, major_u32, axis_u32);
+    return 0;
+}
+
 static int gizmo_DrawCubes(lua_State* L)
 {
     DM_LUA_STACK_CHECK(L, 0);
@@ -831,6 +873,7 @@ static const luaL_Reg Module_methods[] = {
     {"decompose_matrix", gizmo_DecomposeMatrix},
     {"recompose_matrix", gizmo_RecomposeMatrix},
     {"draw_grid", gizmo_DrawGrid},
+    {"set_grid_colors", gizmo_SetGridColors},
     {"draw_cubes", gizmo_DrawCubes},
     {"view_manipulate", gizmo_ViewManipulate},
     {"get_style", gizmo_GetStyle},

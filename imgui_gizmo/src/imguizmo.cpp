@@ -50,6 +50,9 @@ namespace IMGUIZMO_NAMESPACE
    const float screenRotateSize = 0.06f;
    // scale a bit so translate axis do not touch when in universal
    const float rotationDisplayFactor = 1.2f;
+   static ImU32 gGridColorMinor = IM_COL32(0x80, 0x80, 0x80, 0xFF);
+   static ImU32 gGridColorMajor = IM_COL32(0x90, 0x90, 0x90, 0xFF);
+   static ImU32 gGridColorAxis = IM_COL32(0x40, 0x40, 0x40, 0xFF);
 
    static OPERATION operator&(OPERATION lhs, OPERATION rhs)
    {
@@ -2843,9 +2846,9 @@ namespace IMGUIZMO_NAMESPACE
    void DrawGrid(const float* view, const float* projection, const float* matrix, const float gridSize)
    {
       matrix_t viewProjection = *(matrix_t*)view * *(matrix_t*)projection;
-      vec_t frustum[6];
-      ComputeFrustumPlanes(frustum, viewProjection.m16);
       matrix_t res = *(matrix_t*)matrix * viewProjection;
+      vec_t frustum[6];
+      ComputeFrustumPlanes(frustum, res.m16);
 
       for (float f = -gridSize; f <= gridSize; f += 1.f)
       {
@@ -2882,9 +2885,9 @@ namespace IMGUIZMO_NAMESPACE
             }
             if (visible)
             {
-               ImU32 col = IM_COL32(0x80, 0x80, 0x80, 0xFF);
-               col = (fmodf(fabsf(f), 10.f) < FLT_EPSILON) ? IM_COL32(0x90, 0x90, 0x90, 0xFF) : col;
-               col = (fabsf(f) < FLT_EPSILON) ? IM_COL32(0x40, 0x40, 0x40, 0xFF): col;
+               ImU32 col = gGridColorMinor;
+               col = (fmodf(fabsf(f), 10.f) < FLT_EPSILON) ? gGridColorMajor : col;
+               col = (fabsf(f) < FLT_EPSILON) ? gGridColorAxis : col;
 
                float thickness = 1.f;
                thickness = (fmodf(fabsf(f), 10.f) < FLT_EPSILON) ? 1.5f : thickness;
@@ -2894,6 +2897,13 @@ namespace IMGUIZMO_NAMESPACE
             }
          }
       }
+   }
+
+   void SetGridColors(ImU32 minor, ImU32 major, ImU32 axis)
+   {
+      gGridColorMinor = minor;
+      gGridColorMajor = major;
+      gGridColorAxis = axis;
    }
 
    void ViewManipulate(float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float length, ImVec2 position, ImVec2 size, ImU32 backgroundColor)

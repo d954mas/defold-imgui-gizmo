@@ -113,6 +113,13 @@ function imgui_gizmo.recompose_matrix(translation, rotation, scale) end
 ---@param grid_size number
 function imgui_gizmo.draw_grid(view, projection, matrix, grid_size) end
 
+---Set grid colors.
+---@param minor vector4|table|number
+---@param major vector4|table|number
+---@param axis vector4|table|number
+---If numbers are used, they must be RGBA in 0xRRGGBBAA format.
+function imgui_gizmo.set_grid_colors(minor, major, axis) end
+
 ---Draw cubes from matrices array.
 ---@param view matrix4
 ---@param projection matrix4
