@@ -42,6 +42,14 @@ local function recreate_object(obj, tint)
     local q = imgui_gizmo.quat_from_euler(rotation)
     obj.instance_id = msg.url(collectionfactory.create(obj.factory, translation, q, nil, scale)[hash("/root")])
     obj.model_comp_url = msg.url(  obj.instance_id.socket,obj.instance_id.path, "model")
+    obj.collision_comp_url = msg.url(  obj.instance_id.socket,obj.instance_id.path, "collisionobject")
+    if obj.name == "cube" then
+        local scale_u = 1--math.min(scale.x, scale.y, scale.z)
+        local data = {}
+        data.type = physics.SHAPE_TYPE_BOX
+        data.dimensions = vmath.vector3(1*scale.x / scale_u, 1*scale.y / scale_u, 1*scale.z / scale_u)
+        physics.set_shape( obj.collision_comp_url, "shape1", data)
+    end
     if tint then
         set_tint(obj.model_comp_url, tint)
     end
@@ -233,7 +241,7 @@ function update(self, dt)
 
     if self.selected then
         local operation = self.gizmo_operation
-        if self.selected == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
+        if self.selected.name == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
             operation = imgui_gizmo.OPERATION_SCALEU
         end
 
