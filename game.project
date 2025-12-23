@@ -15,7 +15,7 @@ package = com.defold.example.basic3d
 
 [project]
 title = imgui_gizmo
-dependencies#0 = https://github.com/d954mas/extension-imgui/archive/refs/heads/master.zip
+dependencies#0 = https://github.com/britzl/extension-imgui/archive/refs/heads/master.zip
 
 [physics]
 type = 3D
