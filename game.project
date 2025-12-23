@@ -34,3 +34,6 @@ scale_mode = stretch
 [input]
 game_binding = /game.input_bindingc
 
+[library]
+include_dirs = imgui_gizmo
+

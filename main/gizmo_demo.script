@@ -34,7 +34,7 @@ local function set_tint(id, color)
     go.set(id, "tint", color)
 end
 
-local function recreate_object(obj, tint)
+local function recreate_object(obj)
     if obj.instance_id then
         go.delete(obj.instance_id, true)
     end
@@ -199,12 +199,18 @@ function update(self, dt)
             if rt_changed then
                 rt = vmath.vector3(rtx, rty, rtz)
             end
-            local sc_changed, scx, scy, scz = imgui.input_float3("Sc", sc.x, sc.y, sc.z)
-            if sc_changed then
-                sc = vmath.vector3(scx, scy, scz)
-                if self.selected == "sphere" then
-                    local s = math.max(sc.x, sc.y, sc.z)
-                    sc = vmath.vector3(s, s, s)
+            local sc_changed = false
+            if self.selected == "sphere" then
+                local sphere_scale = sc.x
+                sc_changed, sphere_scale = imgui.input_float("Sc", sphere_scale)
+                if sc_changed then
+                    sc = vmath.vector3(sphere_scale, sphere_scale, sphere_scale)
+                end
+            else
+                local scx, scy, scz
+                sc_changed, scx, scy, scz = imgui.input_float3("Sc", sc.x, sc.y, sc.z)
+                if sc_changed then
+                    sc = vmath.vector3(scx, scy, scz)
                 end
             end
             if tr_changed or rt_changed or sc_changed then
@@ -248,7 +254,6 @@ function update(self, dt)
         local operation = self.gizmo_operation
         if self.selected == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
             operation = imgui_gizmo.OPERATION_SCALEU
-            print("universal scale")
         end
 
         local obj = self.objects[self.selected]
@@ -262,13 +267,16 @@ function update(self, dt)
         )
         if manipulated then
             if self.selected == "sphere" then
+                --universal scale
                 local tr, rt, sc = imgui_gizmo.decompose_matrix(obj.matrix)
                 local s = math.max(sc.x, sc.y, sc.z)
                 sc = vmath.vector3(s, s, s)
                 obj.matrix = imgui_gizmo.recompose_matrix(tr, rt, sc)
-                recreate_object(obj, vmath.vector4(1, 0.6, 0.2, 1))
+                recreate_object(obj)
+                set_tint(obj.model_comp_url, vmath.vector4(1, 0.6, 0.2, 1))
             elseif self.selected == "cube" then
                 recreate_object(obj, vmath.vector4(0.2, 0.8, 1, 1))
+                set_tint(obj.model_comp_url, vmath.vector4(1, 0.6, 0.2, 1))
             else
                 recreate_object(obj)
             end

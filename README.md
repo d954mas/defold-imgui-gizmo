@@ -1,17 +1,56 @@
-# Welcome to Defold
+# ImGui Gizmo Demo (Defold)
 
-This project was created from the "basic 3D" project template.
+Small demo project for testing ImGui Gizmo in Defold: object picking, transforms via gizmo, and a mini camera view manipulator.
 
-The settings in ["game.project"](defold://open?path=/game.project) are mostly set to the default values. The render script is a modified version of the default render script with the addition that models are rendered in a separate pass before 2D components such as sprites and tilemaps. The physics type is set to 3D and not 2D.
+## Features
+- Translate, rotate, and scale via ImGui Gizmo.
+- Uniform scale enforced for the sphere (prevents distortion).
+- Object selection by clicking its collider.
+- Visual grid and mini view manipulator.
 
-The project contains a bootstrap ["main.collection"](defold://open?path=/main/main.collection) that includes a game object with a camera component and a game object with three different models.
+## Run
+1. Open the project in Defold.
+2. Run `main/main.collection`.
 
-Check out [the documentation pages](https://defold.com/learn) for examples, tutorials, manuals and API docs.
+## Controls
+- Click an object to select it.
+- The left panel lets you change gizmo mode and edit TRS values manually.
+- Enable Snap for stepped changes.
 
-If you run into trouble, help is available in [our forum](https://forum.defold.com).
+## Example
+Lua header usage (API + constants) and a minimal per-frame call:
 
-Happy Defolding!
+```lua
+local imgui = require "imgui"
+local imgui_gizmo = require "imgui_gizmo.imgui_gizmo_header"
 
-## Credits
+function update(self, dt)
+    -- At least one ImGui call is required each frame to trigger NewFrame().
+    imgui.get_frame_height()
 
-* Textures by Kenney (https://www.kenney.nl)
+    imgui_gizmo.set_context()
+    imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
+    imgui_gizmo.set_drawlist_foreground()
+    local manipulated = imgui_gizmo.manipulate(
+        self.view,
+        self.projection,
+        imgui_gizmo.OPERATION_SCALEU,
+        imgui_gizmo.MODE_LOCAL,
+        self.matrix
+    )
+    if manipulated then
+        -- handle updated matrix here
+    end
+end
+```
+
+## Notes
+- The Lua header in `imgui_gizmo/imgui_gizmo_header.lua` is the API entry point (constants and bindings).
+- You must call at least one ImGui function every frame so the extension can trigger `NewFrame()`. A no-op like `imgui.get_frame_height()` is sufficient.
+
+## Key Files
+- `main/gizmo_demo.script` — demo logic and ImGui Gizmo usage.
+- `imgui_gizmo/imgui_gizmo_header.lua` — ImGui Gizmo API (constants + bindings).
+
+## Background
+Based on the Defold "basic 3D" template and uses 3D physics.
