@@ -109,34 +109,6 @@ static bool ReadColor(lua_State* L, int index, ImVec4* out_color)
     return false;
 }
 
-static int gizmo_BeginFrame(lua_State* L)
-{
-    DM_LUA_STACK_CHECK(L, 0);
-    ImGuizmo::BeginFrame();
-    return 0;
-}
-
-static int gizmo_SetDrawlist(lua_State* L)
-{
-    DM_LUA_STACK_CHECK(L, 0);
-    ImGuizmo::SetDrawlist(NULL);
-    return 0;
-}
-
-static int gizmo_SetDrawlistForeground(lua_State* L)
-{
-    DM_LUA_STACK_CHECK(L, 0);
-    ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
-    return 0;
-}
-
-static int gizmo_SetDrawlistBackground(lua_State* L)
-{
-    DM_LUA_STACK_CHECK(L, 0);
-    ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
-    return 0;
-}
-
 static int gizmo_SetRect(lua_State* L)
 {
     DM_LUA_STACK_CHECK(L, 0);
@@ -252,39 +224,6 @@ static int gizmo_SetPlaneLimit(lua_State* L)
     float value = (float)luaL_checknumber(L, 1);
     ImGuizmo::SetPlaneLimit(value);
     return 0;
-}
-
-static int gizmo_PushID(lua_State* L)
-{
-    DM_LUA_STACK_CHECK(L, 0);
-    if (lua_isnumber(L, 1)) {
-        ImGuizmo::PushID((int)luaL_checkinteger(L, 1));
-        return 0;
-    }
-    const char* str_id = luaL_checkstring(L, 1);
-    ImGuizmo::PushID(str_id);
-    return 0;
-}
-
-static int gizmo_PopID(lua_State* L)
-{
-    DM_LUA_STACK_CHECK(L, 0);
-    ImGuizmo::PopID();
-    return 0;
-}
-
-static int gizmo_GetID(lua_State* L)
-{
-    DM_LUA_STACK_CHECK(L, 1);
-    if (lua_isnumber(L, 1)) {
-        ImGuiID id = ImGuizmo::GetID((int)luaL_checkinteger(L, 1));
-        lua_pushnumber(L, (lua_Number)id);
-        return 1;
-    }
-    const char* str_id = luaL_checkstring(L, 1);
-    ImGuiID id = ImGuizmo::GetID(str_id);
-    lua_pushnumber(L, (lua_Number)id);
-    return 1;
 }
 
 static int gizmo_Manipulate(lua_State* L)
@@ -671,10 +610,6 @@ static int gizmo_SetStyleColor(lua_State* L)
 }
 
 static const luaL_Reg Module_methods[] = {
-
-    {"set_drawlist", gizmo_SetDrawlist},
-    {"set_drawlist_foreground", gizmo_SetDrawlistForeground},
-    {"set_drawlist_background", gizmo_SetDrawlistBackground},
     {"set_rect", gizmo_SetRect},
     {"set_orthographic", gizmo_SetOrthographic},
     {"enable", gizmo_Enable},
@@ -689,9 +624,6 @@ static const luaL_Reg Module_methods[] = {
     {"set_axis_limit", gizmo_SetAxisLimit},
     {"set_axis_mask", gizmo_SetAxisMask},
     {"set_plane_limit", gizmo_SetPlaneLimit},
-    {"push_id", gizmo_PushID},
-    {"pop_id", gizmo_PopID},
-    {"get_id", gizmo_GetID},
     {"manipulate", gizmo_Manipulate},
     {"decompose_matrix", gizmo_DecomposeMatrix},
     {"recompose_matrix", gizmo_RecomposeMatrix},
