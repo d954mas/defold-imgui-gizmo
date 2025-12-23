@@ -50,9 +50,6 @@ local function recreate_object(obj, tint)
         data.dimensions = vmath.vector3(1*scale.x / scale_u, 1*scale.y / scale_u, 1*scale.z / scale_u)
         physics.set_shape( obj.collision_comp_url, "shape1", data)
     end
-    if tint then
-        set_tint(obj.model_comp_url, tint)
-    end
 end
 
 
@@ -134,7 +131,7 @@ function on_input(self, action_id, action)
         local result = physics.raycast(origin, to, { hash("obstacle") })
         self.draw_line_from = origin
         self.draw_line_to = to
-        self.draw_line_time = 3
+        self.draw_line_time = 0
         self.selected = nil
         if result then
             local hit_id = result.id
@@ -205,11 +202,16 @@ function update(self, dt)
             local sc_changed, scx, scy, scz = imgui.input_float3("Sc", sc.x, sc.y, sc.z)
             if sc_changed then
                 sc = vmath.vector3(scx, scy, scz)
+                if self.selected == "sphere" then
+                    local s = math.max(sc.x, sc.y, sc.z)
+                    sc = vmath.vector3(s, s, s)
+                end
             end
             if tr_changed or rt_changed or sc_changed then
                 obj.matrix = imgui_gizmo.recompose_matrix(tr, rt, sc)
                 local selected_obj = self.objects[self.selected]
-                recreate_object(selected_obj, vmath.vector4(1, 0.6, 0.2, 1))
+                recreate_object(selected_obj)
+                set_tint(selected_obj.model_comp_url, vmath.vector4(1, 0.6, 0.2, 1))
             end
 
             changed = imgui.radio_button("Local", self.gizmo_mode == imgui_gizmo.MODE_LOCAL)
@@ -236,7 +238,11 @@ function update(self, dt)
             set_tint(self.objects[self.last_selected].model_comp_url, vmath.vector4(1, 1, 1, 1))
         end
         self.last_selected = self.selected
-    end
+        if self.selected then
+            set_tint(self.objects[self.selected].model_comp_url, vmath.vector4(1, 0.6, 0.2, 1))
+
+        end
+    end 
 
     if self.selected then
         local operation = self.gizmo_operation
@@ -256,6 +262,10 @@ function update(self, dt)
         )
         if manipulated then
             if self.selected == "sphere" then
+                local tr, rt, sc = imgui_gizmo.decompose_matrix(obj.matrix)
+                local s = math.max(sc.x, sc.y, sc.z)
+                sc = vmath.vector3(s, s, s)
+                obj.matrix = imgui_gizmo.recompose_matrix(tr, rt, sc)
                 recreate_object(obj, vmath.vector4(1, 0.6, 0.2, 1))
             elseif self.selected == "cube" then
                 recreate_object(obj, vmath.vector4(0.2, 0.8, 1, 1))
