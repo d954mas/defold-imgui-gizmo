@@ -269,7 +269,6 @@ static int gizmo_SetPlaneLimit(lua_State* L)
 
 static int gizmo_Manipulate(lua_State* L)
 {
-    DM_LUA_STACK_CHECK(L, -1);
     int top = lua_gettop(L);
     if (top < 5) {
         return luaL_error(L, "manipulate(view, projection, operation, mode, matrix, [snap], [local_bounds], [bounds_snap])");
@@ -672,6 +671,27 @@ static int gizmo_SetContext(lua_State* L)
     return 0;
 }
 
+static int gizmo_SetDrawlist(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 0);
+    ImGuizmo::SetDrawlist(NULL);
+    return 0;
+}
+
+static int gizmo_SetDrawlistForeground(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 0);
+    ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
+    return 0;
+}
+
+static int gizmo_SetDrawlistBackground(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 0);
+    ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
+    return 0;
+}
+
 static const luaL_Reg Module_methods[] = {
     {"set_rect", gizmo_SetRect},
     {"set_orthographic", gizmo_SetOrthographic},
@@ -699,6 +719,9 @@ static const luaL_Reg Module_methods[] = {
     {"set_style_color", gizmo_SetStyleColor},
     {"quat_from_euler", gizmo_QuatFromEuler},
     {"set_context", gizmo_SetContext},
+    {"set_drawlist", gizmo_SetDrawlist},
+    {"set_drawlist_foreground", gizmo_SetDrawlistForeground},
+    {"set_drawlist_background", gizmo_SetDrawlistBackground},
     {0, 0}
 };
 

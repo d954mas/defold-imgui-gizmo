@@ -43,6 +43,7 @@ end
 
 function init(self)
     IMGUI.init()
+    imgui_gizmo.set_context()
     msg.post(".", "acquire_input_focus")
     msg.post("@render:", "use_camera_projection")
     msg.post("/camera#camera", "acquire_camera_focus")
@@ -183,7 +184,8 @@ function update(self, dt)
         return
     end
 
-    --imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
+    imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
+    imgui_gizmo.set_drawlist_foreground()
 
     local operation = self.gizmo_operation
     if self.selected == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
