@@ -12,6 +12,13 @@ static const luaL_Reg Module_methods[] = {
     {0, 0}
 };
 
+static void lua_setfieldstringint(lua_State* L, const char* key, uint32_t value){
+    int top = lua_gettop(L);
+    lua_pushnumber(L, value);
+    lua_setfield(L, -2, key);
+    assert(top == lua_gettop(L));
+}
+
 static void LuaInit(lua_State *L) {
     int top = lua_gettop(L);
     luaL_register(L, MODULE_NAME, Module_methods);
