@@ -41,6 +41,15 @@ local function set_tint(id, color)
     pcall(go.set, id, "tint", color)
 end
 
+local function make_basis_matrix(right, up, forward, position)
+    local m = vmath.matrix4()
+    m.c0 = vmath.vector4(right.x, right.y, right.z, 0)
+    m.c1 = vmath.vector4(up.x, up.y, up.z, 0)
+    m.c2 = vmath.vector4(forward.x, forward.y, forward.z, 0)
+    m.c3 = vmath.vector4(position.x, position.y, position.z, 1)
+    return m
+end
+
 function init(self)
     IMGUI.init()
     imgui_gizmo.set_context()
@@ -90,8 +99,6 @@ function on_input(self, action_id, action)
         dir = vmath.vector3(0, 0, -1)
         local to = origin + dir * 1000
         local result = physics.raycast(origin, to, { hash("obstacle") })
-        print(to)
-        pprint(result)
         self.selected = nil
         if result then
             local hit_id = result.id
@@ -100,7 +107,6 @@ function on_input(self, action_id, action)
             elseif hit_id == self.objects.cube.id then
                 self.selected = "cube"
             end
-            print(self.selected)
         end
     end
 end
@@ -111,7 +117,20 @@ function update(self, dt)
     self.display_width, self.display_height = window.get_size()
 
     IMGUI.on_resize(self.display_width, self.display_height)
+    imgui.get_frame_height() -- NEED ANY IMGUI CALL SO DEFOLD IMGUI EXTENSION CREATE A FRAME
     imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
+    imgui_gizmo.set_drawlist_background()
+    do
+        local grid_size = 10
+        local identity = vmath.matrix4()
+        imgui_gizmo.draw_grid(self.view, self.projection, identity, grid_size)
+
+        local right = vmath.vector3(0, 1, 0)
+        local up = vmath.vector3(0, 0, 1)
+        local forward = vmath.vector3(1, 0, 0)
+        local vertical = make_basis_matrix(right, up, forward, vmath.vector3(0, 0, 0))
+        imgui_gizmo.draw_grid(self.view, self.projection, vertical, grid_size)
+    end
     imgui_gizmo.set_drawlist_foreground()
 
     if self.selected then
@@ -220,27 +239,17 @@ function update(self, dt)
     end
 
 
-    local gizmo_size = 140
-    imgui.set_next_window_pos(self.display_width - gizmo_size - 12, 12)
-    imgui.set_next_window_size(gizmo_size, gizmo_size)
-    local visible = imgui.begin_window(
-        "View Gizmo",
-        false,
-        imgui.WINDOWFLAGS_NORESIZE + imgui.WINDOWFLAGS_NOMOVE
-    )
-    if visible then
-        local wx, wy = imgui.get_window_pos()
-        local ww, wh = imgui.get_window_size()
-        local view_matrix = self.view
-        local pos = vmath.vector3(wx, wy, 0)
-        local size = vmath.vector3(ww, wh, 0)
-        imgui_gizmo.set_drawlist_foreground()
-        imgui_gizmo.view_manipulate(view_matrix, 100, pos, size, 0x101010FF)
-        self.view = view_matrix
-        local cam_matrix = vmath.inv(view_matrix)
-        local cam_pos, cam_rot = imgui_gizmo.decompose_matrix(cam_matrix)
-        go.set_position(cam_pos, self.camera_go)
-        go.set_rotation(imgui_gizmo.quat_from_euler(cam_rot), self.camera_go)
-    end
-    imgui.end_window()
+    local view_matrix = self.view
+    local gizmo_size = 120
+    local padding = 12
+    local pos = vmath.vector3(self.display_width - gizmo_size - padding, padding, 0)
+    local size = vmath.vector3(gizmo_size, gizmo_size, 0)
+    imgui_gizmo.set_drawlist_foreground()
+    imgui_gizmo.view_manipulate(view_matrix, 5, pos, size, 0x101010FF)
+    self.view = view_matrix
+    local cam_matrix = vmath.inv(view_matrix)
+    local cam_pos = imgui_gizmo.decompose_matrix(cam_matrix)
+    local cam_rot = imgui_gizmo.quat_look_at(cam_pos, vmath.vector3(0, 0, 0), vmath.vector3(0, 1, 0))
+    go.set_position(cam_pos, self.camera_go)
+    go.set_rotation(cam_rot, self.camera_go)
 end

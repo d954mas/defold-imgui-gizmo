@@ -162,6 +162,20 @@ function imgui_gizmo.set_style_color(index, color) end
 ---@return quat
 function imgui_gizmo.quat_from_euler(euler) end
 
+---Convert basis vectors to quaternion.
+---@param right vector3
+---@param up vector3
+---@param forward vector3
+---@return quat
+function imgui_gizmo.quat_from_basis(right, up, forward) end
+
+---Look-at quaternion from position.
+---@param position vector3
+---@param target vector3
+---@param up vector3
+---@return quat
+function imgui_gizmo.quat_look_at(position, target, up) end
+
 imgui_gizmo.MODE_LOCAL = 0
 imgui_gizmo.MODE_WORLD = 1
 

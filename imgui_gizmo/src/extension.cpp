@@ -80,6 +80,101 @@ static dmVMath::Quat EulerToQuat(dmVMath::Vector3 xyz)
     return quat;
 }
 
+static dmVMath::Vector3 Normalize(dmVMath::Vector3 v)
+{
+    float x = v.getX();
+    float y = v.getY();
+    float z = v.getZ();
+    float len = sqrtf(x * x + y * y + z * z);
+    if (len < 1e-6f) {
+        return dmVMath::Vector3(0.0f, 0.0f, 0.0f);
+    }
+    float inv = 1.0f / len;
+    return dmVMath::Vector3(x * inv, y * inv, z * inv);
+}
+
+static dmVMath::Vector3 Cross(dmVMath::Vector3 a, dmVMath::Vector3 b)
+{
+    return dmVMath::Vector3(
+        a.getY() * b.getZ() - a.getZ() * b.getY(),
+        a.getZ() * b.getX() - a.getX() * b.getZ(),
+        a.getX() * b.getY() - a.getY() * b.getX()
+    );
+}
+
+static dmVMath::Quat QuatFromBasis(dmVMath::Vector3 right, dmVMath::Vector3 up, dmVMath::Vector3 forward)
+{
+    float m00 = right.getX();
+    float m01 = up.getX();
+    float m02 = forward.getX();
+    float m10 = right.getY();
+    float m11 = up.getY();
+    float m12 = forward.getY();
+    float m20 = right.getZ();
+    float m21 = up.getZ();
+    float m22 = forward.getZ();
+
+    float trace = m00 + m11 + m22;
+    if (trace > 0.0f) {
+        float s = sqrtf(trace + 1.0f) * 2.0f;
+        return dmVMath::Quat(
+            (m21 - m12) / s,
+            (m02 - m20) / s,
+            (m10 - m01) / s,
+            0.25f * s
+        );
+    }
+    if (m00 > m11 && m00 > m22) {
+        float s = sqrtf(1.0f + m00 - m11 - m22) * 2.0f;
+        return dmVMath::Quat(
+            0.25f * s,
+            (m01 + m10) / s,
+            (m02 + m20) / s,
+            (m21 - m12) / s
+        );
+    }
+    if (m11 > m22) {
+        float s = sqrtf(1.0f + m11 - m00 - m22) * 2.0f;
+        return dmVMath::Quat(
+            (m01 + m10) / s,
+            0.25f * s,
+            (m12 + m21) / s,
+            (m02 - m20) / s
+        );
+    }
+    {
+        float s = sqrtf(1.0f + m22 - m00 - m11) * 2.0f;
+        return dmVMath::Quat(
+            (m02 + m20) / s,
+            (m12 + m21) / s,
+            0.25f * s,
+            (m10 - m01) / s
+        );
+    }
+}
+
+static dmVMath::Quat QuatLookAt(dmVMath::Vector3 position, dmVMath::Vector3 target, dmVMath::Vector3 up)
+{
+    dmVMath::Vector3 forward = dmVMath::Vector3(
+        target.getX() - position.getX(),
+        target.getY() - position.getY(),
+        target.getZ() - position.getZ()
+    );
+    float len = sqrtf(
+        forward.getX() * forward.getX() +
+        forward.getY() * forward.getY() +
+        forward.getZ() * forward.getZ()
+    );
+    if (len < 1e-6f) {
+        return dmVMath::Quat(0.0f, 0.0f, 0.0f, 1.0f);
+    }
+    forward = dmVMath::Vector3(forward.getX() / len, forward.getY() / len, forward.getZ() / len);
+    dmVMath::Vector3 zaxis = dmVMath::Vector3(-forward.getX(), -forward.getY(), -forward.getZ());
+    dmVMath::Vector3 xaxis = Normalize(Cross(up, zaxis));
+    dmVMath::Vector3 yaxis = Cross(zaxis, xaxis);
+    return QuatFromBasis(xaxis, yaxis, zaxis);
+}
+
 static void FloatArrayToMatrix4(const float* array, dmVMath::Matrix4* out_matrix)
 {
     *out_matrix = dmVMath::Matrix4(
@@ -387,6 +482,7 @@ static int gizmo_RecomposeMatrix(lua_State* L)
 static int gizmo_DrawGrid(lua_State* L)
 {
     DM_LUA_STACK_CHECK(L, 0);
+    ImGuizmo::BeginFrame();
     dmVMath::Matrix4 view = *dmScript::CheckMatrix4(L, 1);
     dmVMath::Matrix4 projection = *dmScript::CheckMatrix4(L, 2);
     dmVMath::Matrix4 grid_matrix = *dmScript::CheckMatrix4(L, 3);
@@ -406,6 +502,7 @@ static int gizmo_DrawGrid(lua_State* L)
 static int gizmo_DrawCubes(lua_State* L)
 {
     DM_LUA_STACK_CHECK(L, 0);
+    ImGuizmo::BeginFrame();
     dmVMath::Matrix4 view = *dmScript::CheckMatrix4(L, 1);
     dmVMath::Matrix4 projection = *dmScript::CheckMatrix4(L, 2);
 
@@ -661,6 +758,28 @@ static int gizmo_QuatFromEuler(lua_State* L)
     return 1;
 }
 
+static int gizmo_QuatFromBasis(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 1);
+    dmVMath::Vector3* right = dmScript::CheckVector3(L, 1);
+    dmVMath::Vector3* up = dmScript::CheckVector3(L, 2);
+    dmVMath::Vector3* forward = dmScript::CheckVector3(L, 3);
+    dmVMath::Quat q = QuatFromBasis(*right, *up, *forward);
+    dmScript::PushQuat(L, q);
+    return 1;
+}
+
+static int gizmo_QuatLookAt(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 1);
+    dmVMath::Vector3* position = dmScript::CheckVector3(L, 1);
+    dmVMath::Vector3* target = dmScript::CheckVector3(L, 2);
+    dmVMath::Vector3* up = dmScript::CheckVector3(L, 3);
+    dmVMath::Quat q = QuatLookAt(*position, *target, *up);
+    dmScript::PushQuat(L, q);
+    return 1;
+}
+
 static int gizmo_SetContext(lua_State* L)
 {
     DM_LUA_STACK_CHECK(L, 0);
@@ -719,6 +838,8 @@ static const luaL_Reg Module_methods[] = {
     {"get_style_color", gizmo_GetStyleColor},
     {"set_style_color", gizmo_SetStyleColor},
     {"quat_from_euler", gizmo_QuatFromEuler},
+    {"quat_from_basis", gizmo_QuatFromBasis},
+    {"quat_look_at", gizmo_QuatLookAt},
     {"set_context", gizmo_SetContext},
     {"set_drawlist", gizmo_SetDrawlist},
     {"set_drawlist_foreground", gizmo_SetDrawlistForeground},
