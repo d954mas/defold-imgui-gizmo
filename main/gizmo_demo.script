@@ -52,6 +52,7 @@ function init(self)
     self.projection = vmath.matrix4()
     self.display_width, self.display_height = window.get_size()
     self.camera = msg.url("/camera#camera")
+    self.camera_go = msg.url("/camera")
 
     self.sphere_id = go.get_id("sphere")
     self.cube_id = go.get_id("cube")
@@ -110,6 +111,22 @@ function update(self, dt)
     self.display_width, self.display_height = window.get_size()
 
     IMGUI.on_resize(self.display_width, self.display_height)
+    imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
+    imgui_gizmo.set_drawlist_foreground()
+
+    local view_matrix = self.view
+    local gizmo_size = 120
+    local padding = 12
+    local pos = vmath.vector3(self.display_width - gizmo_size - padding, padding, 0)
+    local size = vmath.vector3(gizmo_size, gizmo_size, 0)
+    imgui_gizmo.view_manipulate(view_matrix, 100, pos, size, 0x101010FF)
+    self.view = view_matrix
+   -- local cam_matrix = vmath.inv(view_matrix)
+ --   local cam_pos, cam_rot = imgui_gizmo.decompose_matrix(cam_matrix)
+   -- go.set_position(cam_pos, self.camera_go)
+  --  go.set_rotation(imgui_gizmo.quat_from_euler(cam_rot), self.camera_go)
+
+
     if self.selected then
         imgui.set_next_window_pos(12, 12)
         imgui.set_next_window_size(300, 190)
@@ -183,9 +200,6 @@ function update(self, dt)
     if not self.selected then
         return
     end
-
-    imgui_gizmo.set_rect(0, 0, self.display_width, self.display_height)
-    imgui_gizmo.set_drawlist_foreground()
 
     local operation = self.gizmo_operation
     if self.selected == "sphere" and operation == imgui_gizmo.OPERATION_SCALE then
