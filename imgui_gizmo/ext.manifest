@@ -1,1 +1,6 @@
 name: "ImguiGizmo"
+
+platforms:
+    common:
+        context:
+            flags: ["-std=c++14"]
